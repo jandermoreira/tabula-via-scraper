@@ -1,0 +1,14 @@
+1. Language and Conventions
+* Strictly follow Python language conventions.
+* Keep all generated source code, comments, and documentation exclusively in English.
+* Keep all interface in Portuguese.
+
+2. Naming
+* Use meaningful variable names.
+* Preserve existing function names (do not alter them).
+
+3. Documentation and Comments
+* Document the file whenever the generated code constitutes a complete file.
+* Document all functions and methods.
+* Include simple comments to explain main code blocks.
+* Omit any comments explaining modifications made, code evolution history, or instructions directed at the user.
