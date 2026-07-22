@@ -1,6 +1,7 @@
-class:
+moodle:
   base_url: "https://ava.ufscar.br"
-  moodle_id: 36723
+  username: 75329
+  class_id: 23133
 
 evidences:
   consolidation:
@@ -12,6 +13,6 @@ evidences:
     - title: "L1"
       quiz_id: 1147861
     - title: "L2"
-      quiz_id: 1147861
+      quiz_id: 1147862
     - title: "L3"
-      quiz_id: 1147861
+      quiz_id: 1147863
