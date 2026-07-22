@@ -1,7 +1,7 @@
 """
 This script fetches the list of students for a specific class from a Moodle instance.
-It extracts student identification numbers from the "Número de identificação" column
-and returns them formatted as "ID - Name".
+It extracts course details (discipline name, year, and term) along with student
+identification numbers and names.
 It uses credentials from a YAML configuration file and user input for the password.
 """
 
@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import yaml
 import getpass
 import sys
+import re
 
 
 def load_moodle_config(config_file_path):
@@ -104,10 +105,57 @@ def login_moodle(username, password, moodle_url):
 OUTPUT_FILE = "student_list.txt"
 
 
+def extract_course_info(soup):
+    """
+    Extracts course name, year, and term from the Moodle page HTML.
+
+    Args:
+        soup (BeautifulSoup): Parsed HTML page.
+
+    Returns:
+        dict: A dictionary containing 'course_name', 'year', and 'term'.
+    """
+    course_name = "Desconhecida"
+    year = "N/A"
+    term = "N/A"
+
+    # Extract Course Name (Page Header or Breadcrumbs)
+    header_node = soup.find('header', id='page-header')
+    if header_node:
+        h1 = header_node.find('h1')
+        if h1:
+            course_name = h1.get_text(strip=True)
+
+    if course_name == "Desconhecida":
+        breadcrumb = soup.find('nav', attrs={'aria-label': re.compile(r'Navegação|Navigation', re.I)}) or soup.find('ul', class_='breadcrumb')
+        if breadcrumb:
+            links = breadcrumb.find_all('a')
+            if links:
+                course_name = links[-1].get_text(strip=True)
+
+    # Extract Shortname / Course Code (e.g., GRAD_1001350_A_SAO_CARLOS_2026_1)
+    full_text = soup.get_text()
+    match = re.search(r'GRAD_[A-Za-z0-9_]+_(\d{4})_(\d+)', full_text)
+
+    if not match:
+        # Search inside attribute values or script tags if not found in plain text
+        match = re.search(r'(\d{4})_(\d+)', full_text)
+
+    if match:
+        year = match.group(1)
+        term = match.group(2)
+
+    return {
+        'course_name': course_name,
+        'year': year,
+        'term': term
+    }
+
+
 def fetch_student_list(session, moodle_base_url, class_id):
     """
-    Fetches the list of students for a given class ID, filtering by role 'Estudante' and status 'Ativo'.
-    Retrieves the value from the 'Número de identificação' column to precede each student's name.
+    Fetches course metadata and the list of students for a given class ID,
+    filtering by role 'Estudante' and status 'Ativo'.
 
     Args:
         session (requests.Session): An authenticated requests session.
@@ -115,7 +163,7 @@ def fetch_student_list(session, moodle_base_url, class_id):
         class_id (int): The ID of the class to fetch the student list from.
 
     Returns:
-        list: A list of formatted strings "IdentificationNumber - Name", sorted by name.
+        tuple: (dict containing course info, list of formatted strings "IdentificationNumber - Name")
     """
     initial_student_list_url = f"{moodle_base_url}/user/index.php?id={class_id}"
     filtered_students = set()
@@ -130,10 +178,12 @@ def fetch_student_list(session, moodle_base_url, class_id):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
 
+        course_info = extract_course_info(soup)
+
         user_table = soup.find('table', id='participants')
         if not user_table:
             print("Erro: Não foi possível encontrar a tabela de participantes com id='participants'.")
-            return []
+            return course_info, []
 
         headers = [th.get_text(strip=True) for th in user_table.find('thead').find_all('th')]
 
@@ -155,7 +205,7 @@ def fetch_student_list(session, moodle_base_url, class_id):
 
         if name_idx == -1 or id_number_idx == -1 or roles_idx == -1 or status_idx == -1:
             print(f"Erro: Não foi possível encontrar todas as colunas necessárias. Headers encontrados: {headers}")
-            return []
+            return course_info, []
 
         rows = user_table.find('tbody').find_all('tr')
         for row in rows:
@@ -187,25 +237,33 @@ def fetch_student_list(session, moodle_base_url, class_id):
 
     except requests.exceptions.RequestException as e:
         print(f"Erro de requisição ao obter a lista de alunos: {e}")
+        return {'course_name': 'Desconhecida', 'year': 'N/A', 'term': 'N/A'}, []
     except Exception as e:
         print(f"Ocorreu um erro inesperado ao processar a lista de alunos: {e}")
+        return {'course_name': 'Desconhecida', 'year': 'N/A', 'term': 'N/A'}, []
 
-    return sorted(list(filtered_students), key=lambda item: item.split(" - ", 1)[-1])
+    sorted_students = sorted(list(filtered_students), key=lambda item: item.split(" - ", 1)[-1])
+    return course_info, sorted_students
 
 
-def save_student_list(students, output_file):
+def save_student_list(course_info, students, output_file):
     """
-    Saves the list of student names to a text file, one student per line.
+    Saves course information and student list to a text file.
 
     Args:
+        course_info (dict): Dictionary containing course metadata.
         students (list): A list of formatted student strings ("IdentificationNumber - Name").
         output_file (str): The path to the output file.
     """
     try:
         with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(f"Disciplina: {course_info['course_name']}\n")
+            f.write(f"Ano: {course_info['year']}\n")
+            f.write(f"Período: {course_info['term']}\n")
+            f.write("-" * 40 + "\n")
             for student in students:
                 f.write(f"{student}\n")
-        print(f"Lista de alunos salva em: {output_file}")
+        print(f"Lista de alunos e dados do curso salvos em: {output_file}")
     except IOError as e:
         print(f"Erro ao salvar a lista de alunos no arquivo '{output_file}': {e}")
 
@@ -225,11 +283,15 @@ def main():
         authenticated_session = login_moodle(str(MOODLE_USERNAME), MOODLE_PASSWORD, MOODLE_BASE_URL)
 
         if authenticated_session:
-            print("Login bem-sucedido. Obtendo lista de alunos...")
-            students = fetch_student_list(authenticated_session, MOODLE_BASE_URL, MOODLE_CLASS_ID)
+            print("Login bem-sucedido. Obtendo lista de alunos e dados do curso...")
+            course_info, students = fetch_student_list(authenticated_session, MOODLE_BASE_URL, MOODLE_CLASS_ID)
+
+            print(f"\nDisciplina: {course_info['course_name']}")
+            print(f"Ano: {course_info['year']}")
+            print(f"Período: {course_info['term']}\n")
 
             if students:
-                save_student_list(students, OUTPUT_FILE)
+                save_student_list(course_info, students, OUTPUT_FILE)
                 print(f"Total de alunos filtrados: {len(students)}")
             else:
                 print("Nenhum aluno encontrado ou erro ao obter a lista.")
