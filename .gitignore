@@ -219,3 +219,6 @@ __marimo__/
 
 .venv/
 .idea/
+
+*.html
+student_list.txt
