@@ -222,4 +222,8 @@ __marimo__/
 
 *.html
 student_list.txt
+
+# Hide secrets
 .user_token.json
+/client_secret_dev.json
+/client_secret_prod.json
