@@ -222,3 +222,4 @@ __marimo__/
 
 *.html
 student_list.txt
+.user_token.json

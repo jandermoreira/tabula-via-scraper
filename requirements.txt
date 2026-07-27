@@ -1,2 +1,4 @@
 PyYAML
 BeautifulSoup4
+firebase-admin
+google-auth-oauthlib
