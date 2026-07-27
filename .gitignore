@@ -227,3 +227,4 @@ student_list.txt
 .user_token.json
 /client_secret_dev.json
 /client_secret_prod.json
+/.moodle-password

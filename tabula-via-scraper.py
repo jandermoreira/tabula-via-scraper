@@ -45,19 +45,27 @@ def load_moodle_config(config_file_path):
                 'username' not in config['moodle']
         ):
             raise ValueError(
-                f"Error: Mandatory fields missing in {config_file_path}"
+                f"Erro: Campos obrigatórios ausentes em {config_file_path}"
             )
 
         config_data = config['moodle']
         config_data['classes'] = config.get('classes', [])
 
+        if 'get_password_from_file' in config_data and config_data['get_password_from_file']:
+            try:
+                with open('.moodle-password', 'r', encoding='utf-8') as password_file:
+                    password = password_file.read().strip()
+                    config_data['password'] = password
+            except FileNotFoundError:
+                print('Arquivo .moodle-password não encontrado. Ignorado.')
+
         return config_data
 
     except FileNotFoundError:
         raise FileNotFoundError(
-            f"Error: The configuration file '{config_file_path}' was not found.")
+            f"Erro: O arquivo de configuração '{config_file_path}' não foi encontrado.")
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing the YAML file '{config_file_path}': {e}")
+        raise yaml.YAMLError(f"Erro ao processar o arquivo YAML '{config_file_path}': {e}")
 
 
 def load_firebase_config(config_file_path):
@@ -93,7 +101,7 @@ def load_firebase_config(config_file_path):
 
         if not project_id or not client_secrets_file:
             raise ValueError(
-                f"Error: 'project_id' or 'client_secrets_file' missing for active environment '{active_env}' in {config_file_path}"
+                f"Erro: 'project_id' ou 'client_secrets_file' ausentes para o ambiente ativo '{active_env}' em {config_file_path}"
             )
 
         return {
@@ -104,9 +112,9 @@ def load_firebase_config(config_file_path):
 
     except FileNotFoundError:
         raise FileNotFoundError(
-            f"Error: The configuration file '{config_file_path}' was not found.")
+            f"Erro: O arquivo de configuração '{config_file_path}' não foi encontrado.")
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing the YAML file '{config_file_path}': {e}")
+        raise yaml.YAMLError(f"Erro ao processar o arquivo YAML '{config_file_path}': {e}")
 
 
 def authenticate_google_user(client_secrets_file, token_file=".user_token.json"):

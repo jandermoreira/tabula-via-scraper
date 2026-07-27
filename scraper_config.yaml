@@ -1,7 +1,7 @@
 moodle:
   base_url: "https://ava.ufscar.br"
   username: 75329
-  password: Nana-nina-nao
+  get_password_from_file: yes
 
 firebase:
   active_env: "dev" # Options: "dev" (tabulavia-dev) or "prod" (tabulavia)
