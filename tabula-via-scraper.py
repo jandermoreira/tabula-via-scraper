@@ -374,7 +374,7 @@ def create_class_in_firestore(db_client, user_email, class_info):
         'className': class_info['course_name'],
         'academicYear': class_info['year'],
         'period': class_info['term'],
-        'numberOfClasses': 0
+        'numberOfSessions': class_info['numberOfSessions'],
     }
 
     class_ref = db_client.collection('users').document(user_email).collection('classes').document(
@@ -460,6 +460,11 @@ if __name__ == "__main__":
                 class_id = str(class_data["class_id"])
                 print(f'Buscando dados da turma {class_id}...')
                 class_info = fetch_class_information(MOODLE_BASE_URL, class_id)
+                if "number_of_sessions" in class_data:
+                    class_info['numberOfSessions'] = class_data["number_of_sessions"]
+                else:
+                    class_info['numberOfSessions'] = 15
+                    print("AVISO: número de aulas indefinido. Considerando 15 aulas por padrão.")
 
                 # Create class in Firestore
                 create_class_in_firestore(db_client, user_email, class_info)

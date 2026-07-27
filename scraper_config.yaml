@@ -15,6 +15,7 @@ firebase:
 
 classes:
   - class_id: 36723
+    number_of_sessions: 30  # 15 weeks, twice a week
     evidences:
       consolidation:
         - title: "P1"
@@ -29,4 +30,5 @@ classes:
           quiz_id: 1147863
 
   - class_id: 36724
+    number_of_sessions: 15  # 15 weeks
 
