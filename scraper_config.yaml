@@ -30,7 +30,8 @@ classes:
         - title: "L1"
           quiz_id: 1147861  # Get evidence and deadline from Moodle quiz
         - title: "L2"
-          quiz_id: 1147862
+          quiz_id: 1147862 # Get evidence from Moodle quiz
+          deadline: 2028-10-10  # Set deadline manually (override)
         - title: "L3"
           quiz_id: 1147863
 
