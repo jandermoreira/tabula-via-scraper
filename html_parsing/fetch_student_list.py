@@ -102,7 +102,7 @@ def login_moodle(username, password, moodle_url):
         return None
 
 
-OUTPUT_FILE = "student_list.txt"
+OUTPUT_FILE = "../student_list.txt"
 
 
 def extract_course_info(soup):
@@ -269,7 +269,7 @@ def save_student_list(course_info, students, output_file):
 
 
 def main():
-    config_file_path = "scraper_config.yaml"
+    config_file_path = "../scraper_config.yaml"
 
     try:
         moodle_config_data = load_moodle_config(config_file_path)
