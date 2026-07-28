@@ -669,17 +669,13 @@ if __name__ == "__main__":
         authenticated_session = login_moodle(MOODLE_USERNAME, MOODLE_PASSWORD,
                                              MOODLE_BASE_URL)
 
-        print()
-        for class_data in moodle_config_data['classes']:
-            evidences = fetch_class_evidences(MOODLE_BASE_URL, class_data)
-
         if authenticated_session:
             print()
             for class_data in moodle_config_data['classes']:
                 class_id = str(class_data["class_id"])
                 print(f'Buscando dados da turma {class_id}...')
                 class_info = fetch_class_information(MOODLE_BASE_URL, class_data)
-                # evidences = fetch_evidences_information(MOODLE_BASE_URL, class_data)
+                evidences = fetch_class_evidences(MOODLE_BASE_URL, class_data)
 
                 # Create class in Firestore
                 if class_info:
