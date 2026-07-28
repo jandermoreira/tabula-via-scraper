@@ -4,31 +4,41 @@ moodle:
   get_password_from_file: yes
 
 firebase:
-  active_env: "dev" # Options: "dev" (tabulavia-dev) or "prod" (tabulavia)
+  active_env: "dev" # Options: "dev" or "prod"
   environments:
     dev:
       project_id: "tabulavia-dev"
       client_secrets_file: "client_secret_dev.json"
     prod:
-      project_id: "tabulavia"
+      project_id: "classsupervision-jm"
       client_secrets_file: "client_secret_prod.json"
 
 classes:
   - class_id: 36723
+    title: "CAP"
     number_of_sessions: 30  # 15 weeks, twice a week
     evidences:
       consolidation:
-        - title: "P1"
-          gradebook_name: "P1 total"
-          deadline_quiz_id: 1147860
+        - title: "Intermediário"
+          gradebook_name: "P1 total"  # Get evidence from Moodle gradebook
+          deadline_quiz_id: 1147860  # Get deadline from Moodle quiz
+        - title: "Final"
+          gradebook_name: "P2 total"
+          deadline: 2026-06-15  # Set deadline manually
+
       monitoring:
         - title: "L1"
-          quiz_id: 1147861
+          quiz_id: 1147861  # Get evidence and deadline from Moodle quiz
         - title: "L2"
           quiz_id: 1147862
         - title: "L3"
           quiz_id: 1147863
 
-  - class_id: 36724
-    number_of_sessions: 15  # 15 weeks
+#  - class_id: 40407
+#    title: "PA 1"
+#    number_of_sessions: 30
 
+#  - class_id: 36524
+#    title: "TCC"
+#    number_of_sessions: 1
+#
