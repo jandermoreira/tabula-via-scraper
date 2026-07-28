@@ -137,3 +137,65 @@ The scraper must not rely on alphabetical ordering of activity names.
    ├── Updates monitoring_evidence.
    └── Updates consolidation_evidence.
 ```
+
+# Config file
+The scraper configuration is stored in a YAML file, as follows.
+
+```yaml
+# Moodle server configuration
+moodle:
+  base_url: "https://my-moodle.my-domain.com"
+  username: "my-username"
+  
+  # Password is optional; if not provided, it's asked by prompt
+  
+  # Option to set password
+  password: "my-password"  # This is plain text, so be careful
+  
+  # Option to get password from file
+  # If set to true or yes, it expects the plain text password to
+  # be stored in a file name .moodle-password
+  get_password_from_file: yes
+
+# Firebase configuration
+# These settings use my own Firebase projects (development
+# and production flavors)
+firebase:
+  active_env: "prod" # Options: "dev" or "prod"
+  environments:
+    dev:
+      project_id: "tabulavia-dev"
+      client_secrets_file: "client_secret_dev.json"
+    prod:
+      project_id: "classsupervision-jm"
+      client_secrets_file: "client_secret_prod.json"
+
+# Class configuration
+# As many classes as you have may be specified here
+classes:
+  # Class 1: Calculus 1
+  - class_id: 123456  # Moodle class ID, as in the URL
+    # Title is optional; if not specified, it's the same as in Moodle
+    title: "Calculus 1"
+    
+    # Number of sections is as many sections you'll have
+    number_of_sessions: 30  # 15 weeks, twice a week
+    
+    # Evidences
+    evidences:
+      monitoring:
+        - title: "L1"
+          quiz_id: 1147861
+        - title: "L2"
+          quiz_id: 1147862
+        - title: "L3"
+          quiz_id: 1147863
+
+      consolidation:
+        - title: "P1"
+          gradebook_name: "P1 total"
+          deadline_quiz_id: 1147860
+        - title: "P2"
+          gradebook_name: "P2 total"
+          deadline: 2026-06-15
+```
