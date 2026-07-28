@@ -9,6 +9,6 @@
 
 3. Documentation and Comments
 * Document the file whenever the generated code constitutes a complete file.
-* Document all functions and methods using Doxygen-style comments.
+* Document all functions and methods using Sphinx/Doxygen-style (:param, :return, :raises, etc).
 * Include simple comments to explain main code blocks.
 * Omit any comments explaining modifications made, code evolution history, or instructions directed at the user.
