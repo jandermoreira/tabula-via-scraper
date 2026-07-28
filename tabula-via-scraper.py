@@ -36,7 +36,7 @@ class Output:
         """
         Prints a warning message.
         :param text: Text to be printed
-        :param kwargs: any additional keyword arguments to be passed to print()
+        :param kwargs: Any additional keyword arguments to be passed to print()
         """
         print(f"{Output.YELLOW}Aviso{Output.RESET}: {text}", **kwargs)
 
@@ -44,7 +44,7 @@ class Output:
         """
         Prints an error message.
         :param text: Text to be printed
-        :param kwargs: any additional keyword arguments to be passed to print()
+        :param kwargs: Any additional keyword arguments to be passed to print()
         """
         print(f"{Output.RED}Erro{Output.RESET}: {text}", **kwargs)
 
@@ -64,16 +64,11 @@ def load_moodle_config(config_file_path):
     """
     Loads Moodle configuration (base_url, username, and class_id) from a YAML file.
 
-    Args:
-        config_file_path (str): The path to the YAML configuration file.
-
-    Returns:
-        dict: A dictionary the config data
-
-    Raises:
-        FileNotFoundError: If the configuration file does not exist.
-        yaml.YAMLError: If there's an error parsing the YAML file.
-        ValueError: If 'base_url', 'username', or 'class_id' are missing in the Moodle section.
+    :param config_file_path: The path to the YAML configuration file
+    :return: A dictionary containing the configuration data
+    :raises FileNotFoundError: If the configuration file does not exist
+    :raises yaml.YAMLError: If there's an error parsing the YAML file
+    :raises ValueError: If mandatory Moodle fields are missing
     """
     try:
         with open(config_file_path, 'r', encoding='utf-8') as file:
@@ -113,16 +108,11 @@ def load_firebase_config(config_file_path):
     """
     Loads Firebase configuration (active environment, project_id, client_secrets_file) from a YAML file.
 
-    Args:
-        config_file_path (str): The path to the YAML configuration file.
-
-    Returns:
-        dict: A dictionary containing Firebase configuration parameters.
-
-    Raises:
-        FileNotFoundError: If the configuration file does not exist.
-        yaml.YAMLError: If there's an error parsing the YAML file.
-        ValueError: If mandatory configuration fields are missing.
+    :param config_file_path: The path to the YAML configuration file
+    :return: A dictionary containing Firebase configuration parameters
+    :raises FileNotFoundError: If the configuration file does not exist
+    :raises yaml.YAMLError: If there's an error parsing the YAML file
+    :raises ValueError: If mandatory configuration fields are missing
     """
     try:
         with open(config_file_path, 'r', encoding='utf-8') as file:
@@ -161,14 +151,12 @@ def load_firebase_config(config_file_path):
 
 def authenticate_google_user(client_secrets_file, token_file=".user_token.json"):
     """
-    Authenticates the user using Google OAuth 2.0 browser flow or cached credentials, returning the user's ID token and credentials.
+    Authenticates the user using Google OAuth 2.0 browser flow or cached credentials.
 
-    Args:
-        client_secrets_file (str): Path to Google OAuth client secrets JSON file.
-        token_file (str, optional): Path to store or read cached user credentials.
-
-    Returns:
-        tuple: (user_email, user_id, credentials) of the authenticated user.
+    :param client_secrets_file: Path to Google OAuth client secrets JSON file
+    :param token_file: Path to store or read cached user credentials
+    :return: Tuple of (user_email, user_id, credentials) of the authenticated user
+    :raises FileNotFoundError: If the client secrets file does not exist
     """
     from google.oauth2.credentials import Credentials
 
@@ -237,12 +225,9 @@ def init_firebase_user_client(user_credentials, project_id):
     """
     Initializes a Firestore client using user OAuth credentials for multi-tenant isolation.
 
-    Args:
-        user_credentials (google.auth.credentials.Credentials): The authenticated user credentials.
-        project_id (str): Firebase project ID.
-
-    Returns:
-        google.cloud.firestore.Client: Firestore client instance acting on behalf of the user.
+    :param user_credentials: The authenticated user credentials
+    :param project_id: Firebase project ID
+    :return: Firestore client instance acting on behalf of the user
     """
     return firestore.Client(project=project_id, credentials=user_credentials)
 
@@ -251,13 +236,10 @@ def login_moodle(username, password, moodle_url):
     """
     Performs login to a Moodle instance.
 
-    Args:
-        username (str): The username for login.
-        password (str): The password for login.
-        moodle_url (str): The base URL of the Moodle instance (e.g., "https://moodle.example.com").
-
-    Returns:
-        requests.Session: An authenticated session if login is successful, None otherwise.
+    :param username: The username for login
+    :param password: The password for login
+    :param moodle_url: The base URL of the Moodle instance
+    :return: An authenticated requests session if login is successful, None otherwise
     """
     session = requests.Session()
     login_page_url = f"{moodle_url}/login/index.php"
@@ -301,13 +283,10 @@ def login_moodle(username, password, moodle_url):
 
 def get_hidden_password(prompt="Digite sua senha do Moodle: "):
     """
-    Prompts for a password without echoing characters to the terminal, avoiding GetPassWarning.
+    Prompts for a password without echoing characters to the terminal.
 
-    Args:
-        prompt (str): The prompt message to display.
-
-    Returns:
-        str: The entered password.
+    :param prompt: The prompt message to display
+    :return: The entered password
     """
     import warnings
     with warnings.catch_warnings():
@@ -353,11 +332,8 @@ def extract_course_info(soup):
     """
     Extracts course name, year, and term from the Moodle page HTML.
 
-    Args:
-        soup (BeautifulSoup): Parsed HTML page.
-
-    Returns:
-        dict: A dictionary containing 'course_name', 'year', and 'term'.
+    :param soup: Parsed HTML page
+    :return: A dictionary containing 'course_name', 'year', and 'term', or None if unparseable
     """
     course_name = "Desconhecida"
     year = "N/A"
@@ -403,16 +379,12 @@ def extract_course_info(soup):
 
 def fetch_student_list_data(session, moodle_base_url, class_id):
     """
-    Fetches the list of students for a given class ID,
-    filtering by role 'Estudante'.
+    Fetches the list of students for a given class ID, filtering by role 'Estudante'.
 
-    Args:
-        session (requests.Session): An authenticated requests session.
-        moodle_base_url (str): The base URL of the Moodle instance.
-        class_id (str): The ID of the class to fetch the student list from.
-
-    Returns:
-        list: A list of dictionaries, each representing a student with 'id_number' and 'name'.
+    :param session: An authenticated requests session
+    :param moodle_base_url: The base URL of the Moodle instance
+    :param class_id: The ID of the class to fetch the student list from
+    :return: A list of dictionaries representing students
     """
     initial_student_list_url = f"{moodle_base_url}/user/index.php?id={class_id}"
     filtered_students = []
@@ -485,9 +457,9 @@ def fetch_student_list_data(session, moodle_base_url, class_id):
                                 'studentNumber': id_number
                             })
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         return []
-    except Exception as e:
+    except Exception:
         return []
 
     # Sort students by name
@@ -497,16 +469,12 @@ def fetch_student_list_data(session, moodle_base_url, class_id):
 
 def create_class_in_firestore(db_client, user_email, class_info):
     """
-    Creates a class document in Firestore with the extracted course information.
-    Then, creates student documents in a 'students' subcollection.
+    Creates a class document and its 'students' subcollection in Firestore.
 
-    Args:
-        db_client (google.cloud.firestore.Client): Firestore client instance.
-        user_email (str): The authenticated user's email.
-        class_info (dict): Dictionary containing 'course_name', 'year', 'term', 'numberOfSessions', and 'studentList'.
-
-    Returns:
-        str: The class ID (UUID) of the created document.
+    :param db_client: Firestore client instance
+    :param user_email: The authenticated user's email
+    :param class_info: Dictionary containing class metadata and student list
+    :return: The class ID of the created document
     """
     class_id = class_info['classId']
     student_list = class_info.get('studentList', [])
@@ -535,14 +503,11 @@ def create_class_in_firestore(db_client, user_email, class_info):
 
 def fetch_class_information(url, class_data):
     """
-    Fetches course information from Moodle.
+    Fetches course information and student list from Moodle.
 
-    Args:
-        url (str): The base URL of the Moodle instance.
-        class_id (str): The course ID in Moodle.
-
-    Returns:
-        dict: A dictionary with course information and student list.
+    :param url: The base URL of the Moodle instance
+    :param class_data: Dictionary containing class parameters
+    :return: A dictionary with course information and student list, or None if extraction fails
     """
     class_id = class_data['class_id']
 
@@ -578,8 +543,8 @@ def fetch_single_evidence(url, evidence_data):
     Parses and fetches evidence details for a single assessment item.
 
     :param url: Moodle base URL
-    :param evidence_data: Config info of an evidence item
-    :return: dict with processed evidence information or empty dict if invalid
+    :param evidence_data: Configuration information for an evidence item
+    :return: Dictionary with processed evidence information or empty dict if invalid
     """
     evidence_information = {'title': evidence_data['title']}
 
@@ -595,7 +560,7 @@ def fetch_single_evidence(url, evidence_data):
                          f"Não há {output.highlight('deadline')} nem {output.highlight('deadline_quiz_id')}.")
             output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
             return {}
-        evidence_information['scores'] = [  # Placeholder for get scores from gradebook
+        evidence_information['scores'] = [  # Placeholder for getting scores from gradebook
             {'student_id': 887766, 'score': 6.0},
             {'student_id': 887700, 'score': 6.0}
         ]
@@ -614,7 +579,7 @@ def fetch_single_evidence(url, evidence_data):
                            f"{output.highlight('deadline_quiz_id')} ignorada "
                            f"({output.highlight('deadline')} especificada)")
         evidence_information['deadline'] = datetime.date(2027, 12,
-                                                         25)  # Placeholder for getting deadline from Moodle
+                                                         25)  # Placeholder for Moodle deadline
 
     if 'quiz_id' in evidence_data:
         if 'scores' in evidence_information:
@@ -622,7 +587,7 @@ def fetch_single_evidence(url, evidence_data):
                            f"{output.highlight('quiz_id')} ignorada "
                            f"({output.highlight('gradebook_name')} especificada)")
         else:
-            evidence_information['scores'] = [  # Placeholder for get scores from gradebook
+            evidence_information['scores'] = [  # Placeholder for getting scores from gradebook
                 {'student_id': 887766, 'score': 5.0},
                 {'student_id': 887700, 'score': 5.0}
             ]
@@ -634,12 +599,9 @@ def fetch_class_evidences(url, class_data):
     """
     Fetches all evidence items for a given class configuration.
 
-    Args:
-        url (str): The base URL of the Moodle instance.
-        class_data (dict): Class configuration dictionary.
-
-    Returns:
-        list: A list of dictionaries representing processed evidences.
+    :param url: The base URL of the Moodle instance
+    :param class_data: Class configuration dictionary
+    :return: A list of dictionaries representing processed evidences
     """
     if "evidences" not in class_data:
         return []
@@ -693,7 +655,7 @@ if __name__ == "__main__":
         db_client = init_firebase_user_client(user_creds, FIREBASE_PROJECT_ID)
         print("Conexão com o Firebase Firestore iniciada")
 
-        # Load  Moodle configuration
+        # Load Moodle configuration
         moodle_config_data = load_moodle_config(config_file_path)
         MOODLE_BASE_URL = moodle_config_data['base_url']
         MOODLE_USERNAME = str(moodle_config_data['username'])
