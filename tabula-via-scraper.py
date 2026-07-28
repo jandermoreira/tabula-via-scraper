@@ -4,19 +4,19 @@ from a YAML configuration file and user input for the password.
 It also authenticates the user via Google OAuth 2.0 to access Cloud Firestore.
 """
 import datetime
-import os
-import sys
 import getpass
+import os
+import re
+import sys
 from pprint import pprint
 
 import requests
 import yaml
-import re
 from bs4 import BeautifulSoup
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from google.oauth2 import id_token
 from google.cloud import firestore
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 
 # Terminal output with colors
