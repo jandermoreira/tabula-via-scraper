@@ -29,6 +29,8 @@ for turma in classes:
         title = item.get("title")
         gradebook_name = item.get("gradebook_name")
         deadline_quiz_id = item.get("deadline_quiz_id")
+        deadline = item.get("deadline")
         print(
-            f"    - Título: {title}, Gradebook: {gradebook_name}, Deadline Quiz ID: {deadline_quiz_id}"
+            f"    - Título: {title}, Gradebook: {gradebook_name}, Deadline: {deadline_quiz_id}/{deadline}"
         )
+        print(type(deadline))
