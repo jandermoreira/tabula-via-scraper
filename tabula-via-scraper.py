@@ -3,7 +3,7 @@ This script provides functionality to log into a Moodle instance using credentia
 from a YAML configuration file and user input for the password.
 It also authenticates the user via Google OAuth 2.0 to access Cloud Firestore.
 """
-
+import datetime
 import os
 import sys
 import getpass
@@ -152,10 +152,10 @@ def load_firebase_config(config_file_path):
         }
 
     except FileNotFoundError:
-        raise FileNotFoundError("Arquivo de configuração " +
+        raise FileNotFoundError("Arquivo de configuração "
                                 f"{output.highlight(config_file_path)} não encontrado")
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Falha ao processar o arquivo YAML " +
+        raise yaml.YAMLError("Falha ao processar o arquivo YAML "
                              f"{output.highlight(config_file_path)} ({e})")
 
 
@@ -173,7 +173,7 @@ def authenticate_google_user(client_secrets_file, token_file=".user_token.json")
     from google.oauth2.credentials import Credentials
 
     if not os.path.exists(client_secrets_file):
-        raise FileNotFoundError(f"Arquivo de cliente " +
+        raise FileNotFoundError(f"Arquivo de cliente "
                                 f"({output.highlight(client_secrets_file)}) não foi encontrado")
 
     scopes = [
@@ -567,10 +567,103 @@ def fetch_class_information(url, class_data):
         class_info['numberOfSessions'] = class_data["number_of_sessions"]
     else:
         class_info['numberOfSessions'] = 15
-        output.warning(f"Número de aulas indefinido." +
+        output.warning(f"Número de aulas indefinido."
                        f"Assumindo {output.highlight(class_info['numberOfSessions'])} aulas.")
 
     return class_info
+
+
+def fetch_single_evidence(url, evidence_data):
+    """
+    Parses and fetches evidence details for a single assessment item.
+
+    :param url: Moodle base URL
+    :param evidence_data: Config info of an evidence item
+    :return: dict with processed evidence information or empty dict if invalid
+    """
+    evidence_information = {'title': evidence_data['title']}
+
+    if 'gradebook_name' not in evidence_data and 'quiz_id' not in evidence_data:
+        output.error(f"Dados insuficientes para '{evidence_information['title']}' - "
+                     f"{output.highlight('gradebook_name')} ou {output.highlight('quiz_id')} necessárias")
+        output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+        return {}
+
+    if 'gradebook_name' in evidence_data:
+        if 'deadline' not in evidence_data and 'deadline_quiz_id' not in evidence_data:
+            output.error(f"Em '{evidence_information['title']}' - "
+                         f"Não há {output.highlight('deadline')} nem {output.highlight('deadline_quiz_id')}.")
+            output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+            return {}
+        evidence_information['scores'] = [  # Placeholder for get scores from gradebook
+            {'student_id': 887766, 'score': 6.0},
+            {'student_id': 887700, 'score': 6.0}
+        ]
+
+    if 'deadline' in evidence_data:
+        deadline = evidence_data['deadline']
+        if not isinstance(deadline, datetime.date):
+            output.error(f"{output.highlight('deadline')} não é uma data válida (AAAA-MM-DD).")
+            output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+            return {}
+        evidence_information['deadline'] = deadline
+
+    if 'deadline_quiz_id' in evidence_data:
+        if 'deadline' in evidence_information:
+            output.warning(f"Em '{evidence_information['title']}' - "
+                           f"{output.highlight('deadline_quiz_id')} ignorada "
+                           f"({output.highlight('deadline')} especificada)")
+        evidence_information['deadline'] = datetime.date(2027, 12,
+                                                         25)  # Placeholder for getting deadline from Moodle
+
+    if 'quiz_id' in evidence_data:
+        if 'scores' in evidence_information:
+            output.warning(f"Em '{evidence_information['title']}' - "
+                           f"{output.highlight('quiz_id')} ignorada "
+                           f"({output.highlight('gradebook_name')} especificada)")
+        else:
+            evidence_information['scores'] = [  # Placeholder for get scores from gradebook
+                {'student_id': 887766, 'score': 5.0},
+                {'student_id': 887700, 'score': 5.0}
+            ]
+
+    return evidence_information
+
+
+def fetch_class_evidences(url, class_data):
+    """
+    Fetches all evidence items for a given class configuration.
+
+    Args:
+        url (str): The base URL of the Moodle instance.
+        class_data (dict): Class configuration dictionary.
+
+    Returns:
+        list: A list of dictionaries representing processed evidences.
+    """
+    if "evidences" not in class_data:
+        return []
+
+    evidences_data = class_data['evidences']
+    evidences_list = []
+
+    categories = [
+        ('consolidation', 'CONSOLIDATION'),
+        ('monitoring', 'MONITORING')
+    ]
+
+    for category_key, category_type in categories:
+        if category_key in evidences_data:
+            for item in evidences_data[category_key]:
+                evidence_info = fetch_single_evidence(url, item)
+                if evidence_info:
+                    evidence_info['type'] = category_type
+                    evidences_list.append(evidence_info)
+
+    print("Info:")
+    pprint(evidences_list)
+
+    return evidences_list
 
 
 if __name__ == "__main__":
@@ -589,10 +682,11 @@ if __name__ == "__main__":
         # Authenticate user via Google OAuth
         print('Fazendo login no Google... ')
         token_file = ".user_token.json"
-        user_email, user_id, user_creds = authenticate_google_user(FIREBASE_CLIENT_SECRETS_FILE,
-                                                                   token_file)
+        user_email, user_id, user_creds = authenticate_google_user(
+            FIREBASE_CLIENT_SECRETS_FILE,
+            token_file)
         print(f"Usuário autenticado: {output.highlight(user_email)}")
-        output.warning(f'Sessão salva em {output.highlight(token_file)}.' +
+        output.warning(f'Sessão salva em {output.highlight(token_file)}.'
                        ' Não compartilhe este arquivo!')
 
         # Initialize Firestore client using user OAuth credentials
@@ -610,13 +704,20 @@ if __name__ == "__main__":
             MOODLE_PASSWORD = getpass.getpass(("Digite sua senha do Moodle: "))
 
         print("Fazendo login no Moodle...")
-        authenticated_session = login_moodle(MOODLE_USERNAME, MOODLE_PASSWORD, MOODLE_BASE_URL)
+        authenticated_session = login_moodle(MOODLE_USERNAME, MOODLE_PASSWORD,
+                                             MOODLE_BASE_URL)
+
+        print()
+        for class_data in moodle_config_data['classes']:
+            evidences = fetch_class_evidences(MOODLE_BASE_URL, class_data)
+
         if authenticated_session:
             print()
             for class_data in moodle_config_data['classes']:
                 class_id = str(class_data["class_id"])
                 print(f'Buscando dados da turma {class_id}...')
                 class_info = fetch_class_information(MOODLE_BASE_URL, class_data)
+                # evidences = fetch_evidences_information(MOODLE_BASE_URL, class_data)
 
                 # Create class in Firestore
                 if class_info:
