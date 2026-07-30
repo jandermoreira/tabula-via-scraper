@@ -8,6 +8,7 @@ import getpass
 import os
 import re
 import sys
+import uuid
 from pprint import pprint
 
 import requests
@@ -443,7 +444,7 @@ def fetch_student_list_data(session, moodle_base_url, class_id):
                 # Map Moodle status to Firestore status
                 if roles.strip().lower() == "estudante":
                     if full_name:
-                        firestore_status = "ACTIVE" if moodle_status.strip().lower() == "ativo" else "CANCELED"
+                        firestore_status = "ACTIVE" if moodle_status.strip().lower() == "ativo" else "CANCELLED"
                         if not id_number:
                             print(
                                 f"{Output.YELLOW}Aviso{Output.RESET}: {full_name} ignorado. Número de identificação ausente.")
@@ -481,7 +482,7 @@ def create_class_in_firestore(db_client, user_email, class_info):
 
     class_doc = {
         'classId': class_id,
-        'className': class_info['course_name'],
+        'name': class_info['course_name'],
         'academicYear': class_info['year'],
         'period': class_info['term'],
         'numberOfSessions': class_info['numberOfSessions'],
@@ -499,6 +500,38 @@ def create_class_in_firestore(db_client, user_email, class_info):
             students_collection_ref.document(student_id).set(student_data)
 
     return class_id
+
+
+def create_evidences_in_firestore(db_client, user_email, class_id, evidences_list):
+    """
+    Creates or updates evidence documents in Firestore for a given class.
+
+    :param db_client: Firestore client instance.
+    :param user_email: The authenticated user's email.
+    :param class_id: The ID of the class to which the evidences belong.
+    :param evidences_list: A list of dictionaries, each representing an evidence.
+    """
+    if not evidences_list:
+        return
+
+    evidences_collection_ref = db_client.collection('users').document(user_email).collection(
+        'classes').document(class_id).collection('evidences')
+
+    for evidence_data in evidences_list:
+        evidence_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{class_id}_{evidence_data['name']}"))
+
+        evidence_doc = {
+            'evidenceId': evidence_id,
+            'classId': class_id,
+            'name': evidence_data['name'],
+            'deadline': evidence_data['deadline'],
+            'type': evidence_data['type'],
+            'scores': evidence_data['scores']
+        }
+
+        evidences_collection_ref.document(evidence_id).set(evidence_doc)
+
+    print(f"  - {len(evidences_list)} documentos de evidência criados/atualizados.")
 
 
 def fetch_gradebook_scores(session, moodle_base_url, class_id, gradebook_item_name, student_list):
@@ -597,7 +630,7 @@ def fetch_quiz_scores(session, moodle_base_url, quiz_id, student_list):
     :param session: An authenticated requests session.
     :param moodle_base_url: The base URL of the Moodle instance.
     :param quiz_id: The ID of the quiz.
-    :param student_list: A list of dictionaries, each representing a student with at least 
+    :param student_list: A list of dictionaries, each representing a student with at least
         'studentId' and 'name'.
     :return: A list of dictionaries, each containing 'student_id' and 'score' for the quiz.
              Returns an empty list if scores cannot be found.
@@ -816,58 +849,65 @@ def fetch_single_evidence(url, evidence_data, class_id, student_list):
     :param student_list: The list of students for the current class.
     :return: Dictionary with processed evidence information or empty dict if invalid
     """
-    evidence_information = {'title': evidence_data['title']}
+    evidence_information = {'name': evidence_data['title']}
 
     if 'gradebook_name' not in evidence_data and 'quiz_id' not in evidence_data:
-        output.error(f"Dados insuficientes para '{evidence_information['title']}' - "
+        output.error(f"Dados insuficientes para '{evidence_data['title']}' - "
                      f"{output.highlight('gradebook_name')} ou {output.highlight('quiz_id')} necessárias")
-        output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+        output.warning(f"Entrada '{evidence_data['title']}' ignorada.")
         return {}
 
     # Handle scores from gradebook
     if 'gradebook_name' in evidence_data:
         gradebook_name = evidence_data['gradebook_name']
-        evidence_information['scores'] = fetch_gradebook_scores(authenticated_session, url,
+        scores_list = fetch_gradebook_scores(authenticated_session, url,
                                                                 class_id, gradebook_name,
                                                                 student_list)
-        if not evidence_information['scores']:
+        if not scores_list:
             output.warning("Não foi possível obter notas do livro "
                            f"de notas para '{gradebook_name}'.")
             return {}
+        evidence_information['scores'] = {item['student_id']: item['score'] for item in scores_list}
+
 
     # Handle scores from quiz
     elif 'quiz_id' in evidence_data:
         quiz_id = evidence_data['quiz_id']
-        evidence_information['scores'] = fetch_quiz_scores(authenticated_session, url, quiz_id,
+        scores_list = fetch_quiz_scores(authenticated_session, url, quiz_id,
                                                            student_list)
-        if not evidence_information['scores']:
+        if not scores_list:
             output.warning(f"Não foi possível obter notas do quiz ID {quiz_id}.")
             return {}
+        evidence_information['scores'] = {item['student_id']: item['score'] for item in scores_list}
+
 
     # Handle explicit deadline
     if 'deadline' in evidence_data:
         deadline = evidence_data['deadline']
         if not isinstance(deadline, datetime.date):
             output.error(f"{output.highlight('deadline')} não é uma data válida (AAAA-MM-DD).")
-            output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+            output.warning(f"Entrada '{evidence_data['title']}' ignorada.")
             return {}
-        evidence_information['deadline'] = deadline
+        deadline_dt = datetime.datetime.combine(deadline, datetime.datetime.min.time())
+        evidence_information['deadline'] = int(deadline_dt.timestamp() * 1000)
+
 
     # Handle deadline from quiz
     elif 'deadline_quiz_id' in evidence_data:
         deadline_quiz_id = evidence_data['deadline_quiz_id']
         deadline = fetch_quiz_deadline(authenticated_session, url, deadline_quiz_id)
         if deadline:
-            evidence_information['deadline'] = deadline
+            deadline_dt = datetime.datetime.combine(deadline, datetime.datetime.min.time())
+            evidence_information['deadline'] = int(deadline_dt.timestamp() * 1000)
         else:
             output.warning(f"Não foi possível obter o prazo do quiz ID {deadline_quiz_id}.")
             return {}
 
     # If no deadline was found or explicitly set, and it's required, return empty
     if 'deadline' not in evidence_information:
-        output.error(f"Em '{evidence_information['title']}' - "
+        output.error(f"Em '{evidence_data['title']}' - "
                      f"Não há {output.highlight('deadline')} nem {output.highlight('deadline_quiz_id')}.")
-        output.warning(f"Entrada '{evidence_information['title']}' ignorada.")
+        output.warning(f"Entrada '{evidence_data['title']}' ignorada.")
         return {}
 
     return evidence_information
@@ -957,12 +997,15 @@ if __name__ == "__main__":
                 # Update class_data with student_list before fetching evidences
                 if class_info:
                     class_data['studentList'] = class_info['studentList']
-                    evidences = fetch_class_evidences(MOODLE_BASE_URL, class_data)
-                    print(evidences)
 
                     # Create class in Firestore
-                    # create_class_in_firestore(db_client, user_email, class_info)
+                    create_class_in_firestore(db_client, user_email, class_info)
                     print(f"Turma {class_info['course_name']} criada com sucesso.")
+
+                    evidences = fetch_class_evidences(MOODLE_BASE_URL, class_data)
+                    if evidences:
+                        create_evidences_in_firestore(db_client, user_email, class_id, evidences)
+
                 else:
                     output.warning(
                         f"Turma {class_id} ignorada. Não foi possível obter informações da turma.")
