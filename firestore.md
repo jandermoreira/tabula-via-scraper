@@ -1,104 +1,194 @@
-# Especificação do Banco de Dados: Cloud Firestore (Tabula Via)
+# Cloud Firestore Database Specification (Tabula Via)
 
-## 1. Padrões de Dados
+## Table of Contents
 
-- **Identificadores (IDs):** Todas as chaves primárias são Strings contendo UUID v4.
-- **Identidade de Documento:** O ID atribuído ao documento na coleção deve ser idêntico ao valor armazenado no campo de ID dentro do conteúdo do documento.
-- **Datas/Tempo:** Armazenadas como Números Inteiros (milissegundos desde o Unix Epoch).
-- **Textos/Enums:** Armazenados como Strings. Valores de estado (Enums) são sempre em MAIÚSCULAS.
+- [1. Data Standards](#1-data-standards)
+- [2. Collection Hierarchy](#2-collection-hierarchy)
+  - [Collection: `classes`](#collection-classes)
+  - [Collection: `students`](#collection-students)
+  - [Collection: `skills`](#collection-skills)
+  - [Collection: `activities`](#collection-activities)
+  - [Collection: `evidences`](#collection-evidences)
 
-## 2. Hierarquia de Coleções
+---
 
-Os dados são organizados por usuário e por turma.
+# 1. Data Standards
 
-O caminho base é:
+The database follows the conventions below.
+
+## Identifiers (IDs)
+
+- All primary keys are Strings containing either a UUID v4 or a unique identifier provided by Moodle.
+- The document ID in the collection must be identical to the corresponding ID field stored inside the document.
+
+## Date and Time
+
+- Stored as Integer Numbers representing milliseconds since the Unix Epoch.
+
+## Text and Enums
+
+- Stored as Strings.
+- Enum values are always uppercase.
+
+---
+
+# 2. Collection Hierarchy
+
+Data is organized by user and by class.
+
+## Base Path
 
 ```text
 /users/{userEmail}/
 ```
 
-O `userEmail` é o email do usuário autenticado via Google OAuth. Isso garante consistência entre diferentes clientes (scraper e app Android) que usam o mesmo email para autenticação.
+`userEmail` is the email address of the user authenticated through Google OAuth. This ensures consistency across different clients (scraper and Android app) using the same authentication email.
 
-### Coleção: `classes`
+---
 
-Armazena os dados das turmas.
+## Collection: `classes`
 
-**ID do Documento:** `{classId}` (UUID)
+Stores class information.
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| classId | String | Identificador único da turma. |
-| className | String | Nome da disciplina ou turma. |
-| academicYear | String | Ano letivo (ex: "2024"). |
-| period | String | Período/Semestre (ex: "1º Semestre"). |
-| numberOfClasses | Number | Quantidade total de aulas previstas. |
+### Document ID
 
-### Coleção: `students` (Subcoleção de Turma)
+```text
+{classId}
+```
 
-Alunos vinculados a uma turma específica.
+(UUID v4 or a unique identifier provided by Moodle)
 
-**Caminho:**
+### Fields
+
+| Field            | Type    | Description                                       |
+|------------------|---------|---------------------------------------------------|
+| classId          | String  | Unique class identifier.                          |
+| name             | String  | Course or class name.                             |
+| academicYear     | String  | Academic year (e.g. `"2026"`).                    |
+| period           | String  | Academic period/semester (e.g. `"1st Semester"`). |
+| numberOfSessions | Number  | Total number of planned sessions.                 |
+---
+
+## Collection: `students`
+
+Class subcollection.
+
+Stores students associated with a specific class.
+
+### Path
 
 ```text
 /users/{userEmail}/classes/{classId}/students/
 ```
 
-**ID do Documento:** `{studentId}` (UUID)
+### Document ID
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| studentId | String | Identificador único do aluno. |
-| name | String | Nome completo legal do aluno. |
-| displayName | String | Nome para exibição ou apelido. |
-| studentNumber | String | Número de matrícula ou chamada. |
-| classId | String | Referência à turma pai. |
-| status | String | Estados: ACTIVE, INACTIVE ou CANCELLED. |
+```text
+{studentId}
+```
 
-### Coleção: `skills` (Subcoleção de Turma)
+(UUID v4 or a unique identifier provided by Moodle)
 
-Critérios de avaliação definidos para a turma.
+### Fields
 
-**Caminho:**
+| Field         | Type   | Description                                            |
+|---------------|--------|--------------------------------------------------------|
+| studentId     | String | Unique student identifier.                             |
+| name          | String | Student's name.                                        |
+| displayName   | String | Display name or preferred name.                        |
+| studentNumber | String | Institutional student number.                          |
+| classId       | String | Reference to the parent class.                         |
+| status        | String | Possible values: `ACTIVE`, `INACTIVE`, or `CANCELLED`. |
+
+---
+
+## Collection: `skills`
+
+Class subcollection.
+
+Stores assessment criteria defined for the class.
+
+### Path
 
 ```text
 /users/{userEmail}/classes/{classId}/skills/
 ```
 
-**ID do Documento:** `{skillId}` (UUID)
+### Document ID
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| skillId | String | Identificador único da habilidade. |
-| name | String | Nome da competência avaliada. |
-| description | String | Descrição detalhada do critério. |
-| classId | String | Referência à turma pai. |
+```text
+{skillId}
+```
 
-### Coleção: `activities` (Subcoleção de Turma)
+(UUID v4 or a unique identifier provided by Moodle)
 
-Registros de atividades ou aulas ocorridas.
+### Fields
 
-**Caminho:**
+| Field       | Type   | Description                                       |
+|-------------|--------|---------------------------------------------------|
+| skillId     | String | Unique skill identifier.                          |
+| name        | String | Name of the assessed competency.                  |
+| description | String | Detailed description of the assessment criterion. |
+| classId     | String | Reference to the parent class.                    |
+
+---
+
+## Collection: `activities`
+
+Class subcollection.
+
+Stores records of activities or class sessions.
+
+### Path
 
 ```text
 /users/{userEmail}/classes/{classId}/activities/
 ```
 
-**ID do Documento:** `{activityId}` (UUID)
+### Document ID
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| activityId | String | Identificador único da atividade. |
-| name | String | Título da atividade/aula. |
-| date | Number | Data da atividade em milissegundos. |
-| description | String | Classificação: "Individual" ou "Group". |
-| classId | String | Referência à turma pai. |
+```text
+{activityId}
+```
 
-## 3. Regras de Escrita e Integridade
+(UUID v4 or a unique identifier provided by Moodle)
 
-1. **Geração de Documentos:** Ao criar um novo registro (ex: um aluno), gere um UUID v4. Use este UUID para nomear o documento no Firestore e preencha o campo de ID interno (ex: studentId) com este mesmo valor.
+### Fields
 
-2. **Valor Padrão de Status:** Todo novo aluno criado deve ser salvo com o campo `status` definido como `"ACTIVE"`.
+| Field       | Type   | Description                                  |
+|-------------|--------|----------------------------------------------|
+| activityId  | String | Unique activity identifier.                  |
+| name        | String | Activity or lesson title.                    |
+| date        | Number | Activity date in milliseconds.               |
+| description | String | Classification: `"Individual"` or `"Group"`. |
+| classId     | String | Reference to the parent class.               |
 
-3. **Preservação de Dados:** Ao atualizar um documento existente, certifique-se de enviar todos os campos obrigatórios. O sistema opera com substituição total do documento durante a sincronização entre dispositivos.
+---
 
-4. **Consistência de Nomes:** Utilize exatamente os nomes de campos listados nas tabelas acima (ex: use `className` e não `name` para turmas; use `classId` e não `id_turma`).
+## Collection: `evidences`
+
+### Path
+
+```text
+/users/{userEmail}/classes/{classId}/evidences/{evidenceId}
+```
+
+### Document ID
+
+```text
+{evidenceId}
+```
+
+The document name must be the `evidenceId`.
+
+### Fields
+
+| Field      | Type   | Description                                                            |
+|------------|--------|------------------------------------------------------------------------|
+| evidenceId | String | Unique ID (UUID or Moodle ID).                                         |
+| classId    | String | Class ID.                                                              |
+| name       | String | Evidence source name (e.g. `"Conditional List"` or `"Exam 1"`).        |
+| deadline   | Number | Submission deadline in milliseconds since the Unix Epoch.              |
+| type       | String | `"MONITORING"` or `"CONSOLIDATION"`.                                   |
+| scores     | Map    | Evidence scores for each student in the format `{ studentId: score }`. |
+

@@ -10,5 +10,10 @@
 3. Documentation and Comments
 * Document the file whenever the generated code constitutes a complete file.
 * Document all functions and methods using Sphinx/Doxygen-style (:param, :return, :raises, etc).
-* Include simple comments to explain main code blocks.
+* Include simple comments to explain main code blocks, not single commands
 * Omit any comments explaining modifications made, code evolution history, or instructions directed at the user.
+
+4. Interaction
+* Do not be friendly to me. I'm not your pal. Do not thank me, do not compliment me. Be tech only.
+* Always ask permission to create new files or edit existing ones
+* Wait until it's clear what I really want before starting coding.
